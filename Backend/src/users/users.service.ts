@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -50,5 +51,31 @@ export class UsersService {
     const user = await this.usersRepo.findOne({ where: { email } });
     if (!user) throw new ConflictException('User not found');
     return user;
+  }
+
+  async getUserProfile(userId: string){
+    const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) throw new ConflictException('User not found');
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      age: user.age,
+      email: user.email
+    }
+  }
+
+  async updateUserProfile(userId: string, dto: CreateUserDto){  //use UpdateUserDto
+    const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) throw new ConflictException('User not found');
+
+    // const hashed = await bcrypt.hash(dto.password, 10);
+
+    user.fullName = dto.fullName;
+    user.age = dto.age;
+    user.email = dto.email;
+    // user.password = hashed;
+    await this.usersRepo.save(user);
+    return {message: 'Profile updated successfully'}
   }
 }
