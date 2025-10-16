@@ -11,6 +11,7 @@ import { ReportsService } from './reports/reports.service';
 import { UsersModule } from './users/users.module';
 import { getTypeOrmConfig } from './config/ormconfig';
 import { InvestmentsModule } from './investments/investments.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { InvestmentsModule } from './investments/investments.module';
     SavingsModule,
     UsersModule,
     InvestmentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController, ReportsController], // only controllers not provided by modules
   providers: [AppService, ReportsService],        // only providers not provided by modules
