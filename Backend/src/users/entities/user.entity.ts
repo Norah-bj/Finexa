@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { NotificationPreference } from 'src/notifications/entities/notification-preference.entity';
+import { Notification } from 'src/notifications/entities/notification.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, CreateDateColumn, OneToMany } from 'typeorm';
 
 @Entity('users')
 export class User {
@@ -16,6 +18,13 @@ export class User {
 
   @Column()
   password: string;
+
+  @OneToOne(() => NotificationPreference, pref => pref.user)
+  notificationPreference: NotificationPreference;
+
+  @OneToMany(() => Notification, notif => notif.user)
+  notifications: Notification[];
+
 
   @CreateDateColumn()
   createdAt: Date;

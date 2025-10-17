@@ -1,4 +1,4 @@
-import { PrimaryGeneratedColumn, Column, ManyToMany, JoinColumn, CreateDateColumn, Entity } from "typeorm";
+import { PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Entity } from "typeorm";
 import { User } from "src/users/entities/user.entity";
 
 @Entity('notification')
@@ -6,8 +6,7 @@ export class Notification {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToMany(()=> User)
-    @JoinColumn({name: 'user_id'})
+    @ManyToOne(() => User, user => user.notifications, { onDelete: 'CASCADE' })
     user: User;
 
     @Column()
