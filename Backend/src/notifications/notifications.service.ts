@@ -19,7 +19,6 @@ export class NotificationsService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  // ✅ Create a notification for a user
   async createNotif(dto: CreateNotificationDto) {
     const user = await this.userRepo.findOne({ where: { id: dto.userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -33,7 +32,6 @@ export class NotificationsService {
     return this.notificationRepo.save(notification);
   }
 
-  // ✅ Get all notifications for a specific user
   async findAll(userId: string) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -44,7 +42,6 @@ export class NotificationsService {
     });
   }
 
-  // ✅ Mark a specific notification as read
   async markAsRead(id: string) {
     const notification = await this.notificationRepo.findOne({ where: { id } });
     if (!notification) throw new NotFoundException('Notification not found');
@@ -53,7 +50,6 @@ export class NotificationsService {
     return this.notificationRepo.save(notification);
   }
 
-  // ✅ Delete a notification
   async deleteNotif(id: string) {
     const notification = await this.notificationRepo.findOne({ where: { id } });
     if (!notification) throw new NotFoundException('Notification not found');
@@ -62,7 +58,6 @@ export class NotificationsService {
     return { message: 'Notification deleted successfully' };
   }
 
-  // ✅ Get a user's notification preferences
     async getPreferences(userId: string): Promise<NotificationPreference | { message: string }> {
     const user = await this.userRepo.findOne({
         where: { id: userId },
@@ -75,7 +70,6 @@ export class NotificationsService {
     }
 
 
-  // ✅ Update or create a user's notification preferences
     async updatePreferences(userId: string, body: Partial<NotificationPreference>): Promise<NotificationPreference> {
     const user = await this.userRepo.findOne({
         where: { id: userId },
@@ -88,20 +82,14 @@ export class NotificationsService {
     });
 
     if (!preference) {
-        // Create new preference if it doesn't exist
         preference = this.notificationPrefRepo.create({
         ...body,
         user,
         });
     } else {
-        // Update existing preference
         Object.assign(preference, body);
     }
 
-    // Save and return — now preference is guaranteed non-null
     return await this.notificationPrefRepo.save(preference);
     }
-
-
 }
-// ✅ Get the count of unread notifications for a specific user
