@@ -6,6 +6,9 @@ export class NotificationPreference {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    @Column({ default: 'light' })
+    theme: string; // 'light' | 'dark' | 'auto'
+
     @Column({default: true})
     pushNotifications: boolean;
     
