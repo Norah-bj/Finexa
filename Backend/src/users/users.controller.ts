@@ -24,6 +24,6 @@ export class UsersController {
 
 @Get(':id/financial-summary')
 async getFinancialSummary(@Param('id') id: string) {
-  // return this.usersService.getFinancialSummary(id);
+  return this.usersService.getFinancialSummary(id);
 }
 }
