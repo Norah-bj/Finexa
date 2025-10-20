@@ -21,4 +21,9 @@ export class UsersController {
   async getProfile(@Param('id') id: string) {
     return this.usersService.getUserProfile(id);
   }
+
+@Get(':id/financial-summary')
+async getFinancialSummary(@Param('id') id: string) {
+  // return this.usersService.getFinancialSummary(id);
+}
 }
