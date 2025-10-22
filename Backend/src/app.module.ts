@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { getTypeOrmConfig } from './config/ormconfig';
 import { InvestmentsModule } from './investments/investments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -25,6 +26,12 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     InvestmentsModule,
     NotificationsModule,
+    ThrottlerModule.forRoot({
+      throttlers: [{
+        ttl: 60000, // Time to live in milliseconds (1 minute)
+        limit: 10,   // Maximum number of requests within TTL
+      }]
+    }),
   ],
   controllers: [AppController], // only controllers not provided by modules
   providers: [AppService],        // only providers not provided by modules
