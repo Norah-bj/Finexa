@@ -6,3 +6,10 @@ pnpm-lock.yaml
 .gitignore
 Dockerfile
 docker-compose.yml
+.vscode
+dist
+*.log
+.env
+.env.*
+*.md 
+

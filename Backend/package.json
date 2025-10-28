@@ -20,6 +20,13 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write",
+      "jest --findRelatedTests --passWithNoTests"
+    ]
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",

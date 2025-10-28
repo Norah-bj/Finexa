@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import helmet from 'helmet';
 // import crypto from 'crypto';
 
 // globalThis.crypto = crypto.webcrypto || crypto;
@@ -21,6 +22,7 @@ async function bootstrap() {
 
   // Global filters
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.use(helmet());
 
   // Start the application
   await app.listen(process.env.PORT ?? 3000);
