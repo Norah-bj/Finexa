@@ -24,6 +24,13 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.use(helmet());
 
+  // Enable CORS
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
   // Start the application
   await app.listen(process.env.PORT ?? 3000);
 }
