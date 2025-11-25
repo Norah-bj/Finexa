@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { api } from "../api/axios";
+import { toast } from "react-toastify";
 
 interface RegisterPageProps {
   setCurrentPage: (page: string) => void;
@@ -57,7 +58,7 @@ export default function RegisterPage({
         password: formData.password,
       });
 
-      alert("Account created successfully. Please sign in.");
+      toast.success("Account created successfully. Please sign in.");
       setIsAuthenticated(false);
       setCurrentPage("login");
     } catch (error: any) {
@@ -65,7 +66,7 @@ export default function RegisterPage({
       const message = Array.isArray(error.response?.data?.message)
         ? error.response.data.message[0]
         : error.response?.data?.message || "Unable to create account";
-      alert(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

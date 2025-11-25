@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { DollarSign, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { toast } from "react-toastify";
 import { api } from "../api/axios";
 
 const handleLogin = async (email: string, password: string) => {
@@ -35,11 +36,14 @@ export default function LoginPage({
     try {
       const data = await handleLogin(formData.email, formData.password);
       localStorage.setItem("token", data.access_token ?? "");
+      toast.success("Welcome back! Redirecting to your dashboard.");
       setIsAuthenticated(true);
       setCurrentPage("dashboard");
     } catch (err) {
       console.error("Login failed:", err);
-      alert("Invalid credentials");
+      const message =
+        (err as any)?.response?.data?.message ?? "Invalid credentials. Please try again.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
