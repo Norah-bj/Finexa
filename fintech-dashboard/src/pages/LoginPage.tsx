@@ -1,36 +1,48 @@
-import React, { useState } from 'react';
-import { DollarSign, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import React, { useState } from "react";
+import { DollarSign, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { api } from "../api/axios";
+
+const handleLogin = async (email: string, password: string) => {
+  const { data } = await api.post("/auth/login", { email, password });
+  return data;
+};
 
 interface LoginPageProps {
   setCurrentPage: (page: string) => void;
   setIsAuthenticated: (auth: boolean) => void;
 }
 
-export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginPageProps) {
+export default function LoginPage({
+  setCurrentPage,
+  setIsAuthenticated,
+}: LoginPageProps) {
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsAuthenticated(true);
-      setCurrentPage('dashboard');
-    }, 1500);
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    try {
+      const data = await handleLogin(formData.email, formData.password);
+      localStorage.setItem("token", data.access_token ?? "");
+      setIsAuthenticated(true);
+      setCurrentPage("dashboard");
+    } catch (err) {
+      console.error("Login failed:", err);
+      alert("Invalid credentials");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -38,7 +50,7 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button
-          onClick={() => setCurrentPage('landing')}
+          onClick={() => setCurrentPage("landing")}
           className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -52,14 +64,19 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
             <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <DollarSign className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Welcome back
+            </h1>
             <p className="text-gray-600">Sign in to your FinTech AI account</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email address
               </label>
               <input
@@ -75,12 +92,15 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={formData.password}
@@ -94,7 +114,11 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -126,7 +150,7 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
                   <span>Signing in...</span>
                 </div>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </button>
           </form>
@@ -134,9 +158,9 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
           {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <button
-                onClick={() => setCurrentPage('register')}
+                onClick={() => setCurrentPage("register")}
                 className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
               >
                 Create account
@@ -146,11 +170,11 @@ export default function LoginPage({ setCurrentPage, setIsAuthenticated }: LoginP
         </div>
 
         {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+        {/* <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
           <p className="text-sm text-blue-800 text-center">
             <strong>Demo:</strong> Use any email and password to sign in
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

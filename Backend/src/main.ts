@@ -26,13 +26,15 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || 'http://localhost:5174',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   // Start the application
-  await app.listen(process.env.PORT ?? 3000);
+  const port = Number(process.env.PORT) || 3000;
+  await app.listen(port);
+  console.log(`Server is running on port ${port}`);
 }
 
 bootstrap();
