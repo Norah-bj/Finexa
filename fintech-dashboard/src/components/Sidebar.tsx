@@ -17,7 +17,7 @@ interface SidebarProps {
   setCurrentPage: (page: string) => void;
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
-  setIsAuthenticated?: (auth: boolean) => void;
+  onLogout?: () => void;
 }
 
 const menuItems = [
@@ -35,13 +35,14 @@ export default function Sidebar({
   setCurrentPage,
   collapsed,
   setCollapsed,
-  setIsAuthenticated,
+  onLogout,
 }: SidebarProps) {
   const handleLogout = () => {
-    if (setIsAuthenticated) {
-      setIsAuthenticated(false);
+    if (onLogout) {
+      onLogout();
+    } else {
+      setCurrentPage("landing");
     }
-    setCurrentPage("landing");
   };
 
   return (

@@ -7,6 +7,7 @@ import { CreateUserDto } from './dto';
 // import { UpdateUserDto } from './dto/update-user.dto';
 import { SavingsService } from 'src/savings/savings.service';
 import { InvestmentsService } from 'src/investments/investments.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -66,22 +67,37 @@ export class UsersService {
       fullName: user.fullName,
       age: user.age,
       email: user.email,
-      budget: user.monthlyBudget
-    }
+      monthlyBudget: user.monthlyBudget,
+      joinedAt: user.createdAt,
+    };
   }
 
-  async updateUserProfile(userId: string, dto: CreateUserDto){  //use UpdateUserDto
+  async updateUserProfile(userId: string, dto: UpdateUserDto){
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new ConflictException('User not found');
 
-    // const hashed = await bcrypt.hash(dto.password, 10);
+    if (dto.fullName !== undefined) {
+      user.fullName = dto.fullName;
+    }
+    if (dto.age !== undefined) {
+      user.age = dto.age;
+    }
+    if (dto.email !== undefined) {
+      user.email = dto.email;
+    }
+    if (dto.monthlyBudget !== undefined) {
+      user.monthlyBudget = dto.monthlyBudget;
+    }
 
-    user.fullName = dto.fullName;
-    user.age = dto.age;
-    user.email = dto.email;
-    // user.password = hashed;
     await this.usersRepo.save(user);
-    return {message: 'Profile updated successfully'}
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      age: user.age,
+      email: user.email,
+      monthlyBudget: user.monthlyBudget,
+      joinedAt: user.createdAt,
+    };
   }
 
     async getFinancialSummary(userId: string) {

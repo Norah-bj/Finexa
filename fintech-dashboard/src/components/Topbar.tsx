@@ -3,9 +3,13 @@ import { Search, Bell, ChevronDown, Filter } from "lucide-react";
 
 interface TopBarProps {
   darkMode?: boolean;
+  user?: {
+    fullName?: string;
+    email?: string;
+  } | null;
 }
 
-export default function TopBar({ darkMode = false }: TopBarProps) {
+export default function TopBar({ darkMode = false, user }: TopBarProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle search functionality
@@ -93,25 +97,23 @@ export default function TopBar({ darkMode = false }: TopBarProps) {
               darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"
             }`}
           >
-            <img
-              src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop"
-              alt="Profile"
-              className="w-9 h-9 rounded-xl object-cover border-2 border-gray-200"
-            />
+            <div className="w-9 h-9 rounded-xl bg-primary-500 text-white flex items-center justify-center font-semibold border-2 border-gray-200">
+              {user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
+            </div>
             <div className="text-left">
               <p
                 className={`text-sm font-semibold ${
                   darkMode ? "text-white" : "text-gray-900"
                 }`}
               >
-                Alex Johnson
+                {user?.fullName ?? "Your profile"}
               </p>
               <p
                 className={`text-xs ${
                   darkMode ? "text-gray-400" : "text-gray-500"
                 }`}
               >
-                Premium User
+                {user?.email ?? "Complete your profile"}
               </p>
             </div>
             <ChevronDown

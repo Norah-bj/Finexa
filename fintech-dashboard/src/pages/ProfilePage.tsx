@@ -1,11 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   User,
-  Camera,
   Edit3,
   Bell,
   Shield,
-  Target,
   Moon,
   Sun,
   Save,
@@ -14,39 +12,76 @@ import {
   MapPin,
   Calendar,
 } from "lucide-react";
+import { toast } from "react-toastify";
+import { api } from "../api/axios";
+import type { AuthUser as BaseAuthUser } from "../App";
+
+// Extend the base AuthUser type with additional properties
+interface AuthUser extends BaseAuthUser {
+  age?: number;
+  monthlyBudget?: number;
+}
 
 interface ProfilePageProps {
   darkMode: boolean;
   setDarkMode: (darkMode: boolean) => void;
+  user: AuthUser | null;
 }
+
+interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  age: number;
+  monthlyBudget?: number;
+  joinedAt?: string;
+}
+
+interface FinancialSummary {
+  activeGoals: number;
+  savingsRate: number | string;
+  monthsActive: number;
+  savingsGoal?: number;
+  financialGoals?: string[];
+  budget?: number;
+}
+
+type NotificationPrefs = {
+  emailReports: boolean;
+  pushNotifications: boolean;
+  smsAlerts: boolean;
+  budgetAlerts: boolean;
+  goalReminders: boolean;
+  investmentUpdates: boolean;
+};
+
+type LocalDetails = {
+  phone: string;
+  location: string;
+};
+
+const missingData = ["Phone number", "Location", "Profile picture"];
+
+const loadLocalDetails = (): LocalDetails => {
+  if (typeof window === "undefined") return { phone: "", location: "" };
+  try {
+    const stored = localStorage.getItem("profileExtras");
+    return stored
+      ? (JSON.parse(stored) as LocalDetails)
+      : { phone: "", location: "" };
+  } catch {
+    return { phone: "", location: "" };
+  }
+};
 
 export default function ProfilePage({
   darkMode,
   setDarkMode,
+  user,
 }: ProfilePageProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: "Alex Johnson",
-    email: "alex.johnson@email.com",
-    phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    age: "28",
-    joinDate: "January 2024",
-    financialGoals:
-      "Save for emergency fund, invest for retirement, buy a house",
-    monthlyBudget: "3500",
-    savingsGoal: "15000",
-  });
-
-  type NotificationPrefs = {
-    emailReports: boolean;
-    pushNotifications: boolean;
-    smsAlerts: boolean;
-    budgetAlerts: boolean;
-    goalReminders: boolean;
-    investmentUpdates: boolean;
-  };
-
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [summary, setSummary] = useState<FinancialSummary | null>(null);
+  const [extras, setExtras] = useState<LocalDetails>(loadLocalDetails);
   const [notifications, setNotifications] = useState<NotificationPrefs>({
     emailReports: true,
     pushNotifications: true,
@@ -55,20 +90,66 @@ export default function ProfilePage({
     goalReminders: true,
     investmentUpdates: true,
   });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: user?.fullName || "",
+    email: user?.email || "",
+    age: user?.age?.toString() || "",
+    monthlyBudget: user?.monthlyBudget?.toString() || "",
+    phone: "",
+    location: "",
+    avatar: null as File | null,
+  });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would typically save to backend
-  };
+  useEffect(() => {
+    if (!user) return;
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const [profileRes, summaryRes] = await Promise.all([
+          api.get<UserProfile>(`/users/${user.id}/profile`),
+          api.get<FinancialSummary>(`/users/${user.id}/financial-summary`),
+        ]);
+        setProfile(profileRes.data);
+        setSummary(summaryRes.data);
+      } catch (error) {
+        console.error(error);
+        toast.error("Unable to load your profile.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setProfileData({
-      ...profileData,
-      [e.target.name]: e.target.value,
-    });
-  };
+    fetchProfile();
+  }, [user?.id]);
+
+  const displayProfile = useMemo(() => {
+    const joinDate = profile?.joinedAt
+      ? new Date(profile.joinedAt).toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        })
+      : "your start date";
+
+    return {
+      name: profile?.fullName ?? user?.fullName ?? "Your name",
+      email: profile?.email ?? user?.email ?? "Add your email",
+      phone: extras.phone || "Add a phone number",
+      location: extras.location || "Add a location",
+      age: profile?.age ? `${profile.age}` : "Not specified",
+      joinDate,
+      monthlyBudget: profile?.monthlyBudget ?? summary?.budget ?? 0,
+      savingsGoal: summary?.savingsGoal ?? 0,
+      financialGoals:
+        summary?.financialGoals?.length
+          ? summary.financialGoals.join(", ")
+          : "Create savings goals to personalize this section.",
+      activeGoals: summary?.activeGoals ?? 0,
+      savingsRate: summary?.savingsRate ?? "0%",
+      monthsActive: summary?.monthsActive ?? 0,
+    };
+  }, [profile, summary, extras, user]);
 
   const handleNotificationChange = (key: keyof NotificationPrefs) => {
     setNotifications((prev) => ({
@@ -77,348 +158,534 @@ export default function ProfilePage({
     }));
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-          <p className="text-sm text-gray-600">
-            Manage your account and preferences
-          </p>
-        </div>
-        <button
-          onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-            isEditing
-              ? "bg-accent-500 text-white hover:bg-accent-600"
-              : "bg-primary-500 text-white hover:bg-primary-600"
-          }`}
-        >
-          {isEditing ? (
-            <Save className="w-4 h-4" />
-          ) : (
-            <Edit3 className="w-4 h-4" />
-          )}
-          <span>{isEditing ? "Save Changes" : "Edit Profile"}</span>
-        </button>
-      </div>
+  const openEditModal = () => {
+    setEditForm({
+      fullName: profile?.fullName ?? user?.fullName ?? "",
+      email: profile?.email ?? user?.email ?? "",
+      age: profile?.age?.toString() ?? "",
+      monthlyBudget: profile?.monthlyBudget?.toString() ?? "",
+      phone: extras.phone,
+      location: extras.location,
+      avatar: null,
+    });
+    setIsModalOpen(true);
+  };
 
-      {/* Profile Header Card */}
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setEditForm((prev) => ({ ...prev, avatar: file }));
+  };
+
+  const persistExtras = (next: LocalDetails) => {
+    setExtras(next);
+    localStorage.setItem("profileExtras", JSON.stringify(next));
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const payload = {
+        fullName: editForm.fullName,
+        email: editForm.email,
+        age: editForm.age ? Number(editForm.age) : undefined,
+        monthlyBudget: editForm.monthlyBudget
+          ? Number(editForm.monthlyBudget)
+          : undefined,
+      };
+
+      const { data } = await api.patch<UserProfile>(
+        `/users/${user.id}/profile`,
+        payload
+      );
+      setProfile(data);
+      persistExtras({ phone: editForm.phone, location: editForm.location });
+      toast.success("Profile updated successfully.");
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to update your profile at the moment.");
+    }
+  };
+
+  if (!user) {
+    return (
       <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-8">
-        <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-          {/* Profile Picture */}
-          <div className="relative">
-            <img
-              src="https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=128&h=128&fit=crop"
-              alt="Profile"
-              className="w-24 h-24 rounded-2xl object-cover"
-            />
-            {isEditing && (
-              <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center hover:bg-primary-600 transition-colors">
-                <Camera className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Profile unavailable
+        </h2>
+        <p className="text-gray-600">
+          Please sign in again to view and edit your profile details.
+        </p>
+      </div>
+    );
+  }
 
-          {/* Profile Info */}
-          <div className="flex-1 text-center md:text-left">
-            {isEditing ? (
-              <input
-                type="text"
-                name="name"
-                value={profileData.name}
-                onChange={handleInputChange}
-                className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-primary-500 focus:outline-none mb-2"
-              />
-            ) : (
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {profileData.name}
-              </h2>
-            )}
-            <p className="text-gray-600 mb-4">
-              Premium Member since {profileData.joinDate}
+  return (
+    <div className="relative">
+      <div
+        className={`space-y-6 ${
+          isModalOpen ? "pointer-events-none blur-sm select-none" : ""
+        }`}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+            <p className="text-sm text-gray-600">
+              Manage your account and preferences
             </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Mail className="w-4 h-4" />
-                <span>{profileData.email}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Phone className="w-4 h-4" />
-                <span>{profileData.phone}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{profileData.location}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span>{profileData.age} years old</span>
-              </div>
-            </div>
           </div>
+          <button
+            onClick={openEditModal}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors bg-primary-500 text-white hover:bg-primary-600"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </button>
+        </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-primary-50 rounded-xl p-4">
-              <p className="text-lg font-bold text-primary-600">4</p>
-              <p className="text-xs text-gray-600">Active Goals</p>
+        {/* Profile Header Card */}
+        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-8">
+          {loading ? (
+            <div className="flex items-center justify-center space-x-3 text-gray-500">
+              <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+              <span>Loading your profile...</span>
             </div>
-            <div className="bg-secondary-50 rounded-xl p-4">
-              <p className="text-lg font-bold text-secondary-600">68%</p>
-              <p className="text-xs text-gray-600">Savings Rate</p>
+          ) : (
+            <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+              {/* Profile Picture */}
+              <div className="relative">
+                <div className="w-24 h-24 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-4xl font-semibold">
+                  {(displayProfile.name || "U").charAt(0)}
+                </div>
+              </div>
+
+              {/* Profile Info */}
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {displayProfile.name}
+                  </h2>
+                  <p className="text-gray-600">{displayProfile.email}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-5 h-5 text-gray-400" />
+                    <span>{displayProfile.phone}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-5 h-5 text-gray-400" />
+                    <span>{displayProfile.location}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-5 h-5 text-gray-400" />
+                    <span>Member since {displayProfile.joinDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded-xl text-center">
+                  <p className="text-2xl font-bold text-primary-600">
+                    {displayProfile.activeGoals}
+                  </p>
+                  <p className="text-sm text-gray-500">Goals</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-xl text-center">
+                  <p className="text-2xl font-bold text-primary-600">
+                    {displayProfile.savingsRate}
+                  </p>
+                  <p className="text-sm text-gray-500">Savings Rate</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-xl text-center">
+                  <p className="text-2xl font-bold text-primary-600">
+                    {displayProfile.monthsActive}
+                  </p>
+                  <p className="text-sm text-gray-500">Months</p>
+                </div>
+              </div>
             </div>
-            <div className="bg-accent-50 rounded-xl p-4">
-              <p className="text-lg font-bold text-accent-600">12</p>
-              <p className="text-xs text-gray-600">Months Active</p>
+          )}
+        </div>
+
+        {/* Financial Overview */}
+        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Financial Overview
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">
+                Monthly Budget
+              </h3>
+              <p className="text-2xl font-bold">
+                ${displayProfile.monthlyBudget.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">
+                Savings Goal
+              </h3>
+              <p className="text-2xl font-bold">
+                ${displayProfile.savingsGoal.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Personal Information */}
-        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-6">
+        {/* Financial Goals */}
+        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Financial Goals
+            </h2>
+            <button className="text-sm font-medium text-primary-600 hover:text-primary-700">
+              View All
+            </button>
+          </div>
+          <p className="text-gray-600">{displayProfile.financialGoals}</p>
+        </div>
+
+        {/* Notification Preferences */}
+        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-8">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
-              <User className="w-5 h-5 text-primary-600" />
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Bell className="w-5 h-5 text-purple-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900">
-              Personal Information
+              Notification Preferences
             </h3>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              {isEditing ? (
-                <input
-                  type="email"
-                  name="email"
-                  value={profileData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-3 rounded-xl">
-                  {profileData.email}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              {isEditing ? (
-                <input
-                  type="tel"
-                  name="phone"
-                  value={profileData.phone}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-3 rounded-xl">
-                  {profileData.phone}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="location"
-                  value={profileData.location}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-3 rounded-xl">
-                  {profileData.location}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Financial Profile */}
-        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-10 h-10 bg-secondary-100 rounded-xl flex items-center justify-center">
-              <Target className="w-5 h-5 text-secondary-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Financial Profile
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Financial Goals
-              </label>
-              {isEditing ? (
-                <textarea
-                  name="financialGoals"
-                  value={profileData.financialGoals}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                />
-              ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-3 rounded-xl">
-                  {profileData.financialGoals}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monthly Budget
-                </label>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    name="monthlyBudget"
-                    value={profileData.monthlyBudget}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                ) : (
-                  <p className="text-gray-900 bg-gray-50 px-4 py-3 rounded-xl">
-                    ${profileData.monthlyBudget}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-gray-600" />
+                <div>
+                  <h4 className="font-medium text-gray-900">Email Reports</h4>
+                  <p className="text-sm text-gray-600">
+                    Receive weekly and monthly reports
                   </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Savings Goal
-                </label>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    name="savingsGoal"
-                    value={profileData.savingsGoal}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                ) : (
-                  <p className="text-gray-900 bg-gray-50 px-4 py-3 rounded-xl">
-                    ${profileData.savingsGoal}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Preferences */}
-      <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-accent-100 rounded-xl flex items-center justify-center">
-            <Bell className="w-5 h-5 text-accent-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Notification Preferences
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Object.entries(notifications).map(([key, value]) => (
-            <div
-              key={key}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
-            >
-              <div>
-                <h4 className="font-medium text-gray-900 capitalize">
-                  {key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (str) => str.toUpperCase())}
-                </h4>
-                <p className="text-sm text-gray-600">
-                  {key === "emailReports" &&
-                    "Weekly and monthly financial summaries"}
-                  {key === "pushNotifications" &&
-                    "Real-time alerts and updates"}
-                  {key === "smsAlerts" && "Important notifications via SMS"}
-                  {key === "budgetAlerts" && "Spending limit notifications"}
-                  {key === "goalReminders" && "Progress updates on your goals"}
-                  {key === "investmentUpdates" &&
-                    "Portfolio performance updates"}
-                </p>
+                </div>
               </div>
               <button
-                onClick={() =>
-                  handleNotificationChange(key as keyof NotificationPrefs)
-                }
+                onClick={() => handleNotificationChange("emailReports")}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  value ? "bg-primary-500" : "bg-gray-300"
+                  notifications.emailReports ? "bg-primary-500" : "bg-gray-300"
                 }`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                    value ? "translate-x-6" : "translate-x-1"
+                    notifications.emailReports
+                      ? "translate-x-6"
+                      : "translate-x-1"
                   }`}
                 />
               </button>
             </div>
-          ))}
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <Bell className="w-5 h-5 text-gray-600" />
+                <div>
+                  <h4 className="font-medium text-gray-900">
+                    Push Notifications
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Get updates about your goals
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleNotificationChange("pushNotifications")}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  notifications.pushNotifications
+                    ? "bg-primary-500"
+                    : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                    notifications.pushNotifications
+                      ? "translate-x-6"
+                      : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <Bell className="w-5 h-5 text-gray-600" />
+                <div>
+                  <h4 className="font-medium text-gray-900">SMS Alerts</h4>
+                  <p className="text-sm text-gray-600">
+                    Important account notifications
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleNotificationChange("smsAlerts")}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  notifications.smsAlerts ? "bg-primary-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                    notifications.smsAlerts ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* App Preferences */}
+        <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Shield className="w-5 h-5 text-purple-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              App Preferences
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                {darkMode ? (
+                  <Moon className="w-5 h-5 text-gray-600" />
+                ) : (
+                  <Sun className="w-5 h-5 text-yellow-500" />
+                )}
+                <div>
+                  <h4 className="font-medium text-gray-900">Dark Mode</h4>
+                  <p className="text-sm text-gray-600">
+                    Toggle between light and dark themes
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  darkMode ? "bg-primary-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                    darkMode ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Missing Data Notice */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+          <h4 className="text-lg font-semibold text-yellow-900 mb-2">
+            Heads up
+          </h4>
+          <p className="text-sm text-yellow-800">
+            The following profile fields are not yet stored in the database:{" "}
+            {missingData.join(", ")}. They are currently stored locally in your
+            browser.
+          </p>
         </div>
       </div>
 
-      {/* App Preferences */}
-      <div className="bg-white rounded-2xl shadow-card border border-gray-200 p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-            <Shield className="w-5 h-5 text-purple-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            App Preferences
-          </h3>
-        </div>
+      {/* Edit Profile Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveProfile}
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 space-y-6 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Edit Profile
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center space-x-3">
-              {darkMode ? (
-                <Moon className="w-5 h-5 text-gray-600" />
-              ) : (
-                <Sun className="w-5 h-5 text-yellow-500" />
-              )}
+            <div className="space-y-4">
               <div>
-                <h4 className="font-medium text-gray-900">Dark Mode</h4>
-                <p className="text-sm text-gray-600">
-                  Toggle between light and dark themes
-                </p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={editForm.fullName}
+                  onChange={handleEditChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editForm.email}
+                  onChange={handleEditChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    name="age"
+                    value={editForm.age}
+                    onChange={handleEditChange}
+                    min="18"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monthly Budget
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      name="monthlyBudget"
+                      value={editForm.monthlyBudget}
+                      onChange={handleEditChange}
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={editForm.phone}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={editForm.location}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Photo
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    {editForm.avatar ? (
+                      <img
+                        src={URL.createObjectURL(editForm.avatar)}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="avatar-upload"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+                    >
+                      Change Photo
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPG, GIF or PNG. Max 2MB
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                darkMode ? "bg-primary-500" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                  darkMode ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 flex items-center space-x-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }

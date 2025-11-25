@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LandingPage from './pages/LandingPage';
@@ -13,12 +13,41 @@ import Savings from './pages/Savings';
 import Investments from './pages/Investments';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
+import { setAuthToken } from './api/axios';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+}
 
 function App() {
   const [currentPage, setCurrentPage] = useState('landing');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (storedToken && storedUser) {
+      setAuthToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      setIsAuthenticated(true);
+      setCurrentPage('dashboard');
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setAuthToken(null);
+    setIsAuthenticated(false);
+    setUser(null);
+    setCurrentPage('landing');
+  };
 
   const renderPage = () => {
     if (!isAuthenticated) {
@@ -26,7 +55,13 @@ function App() {
         case 'landing':
           return <LandingPage setCurrentPage={setCurrentPage} />;
         case 'login':
-          return <LoginPage setCurrentPage={setCurrentPage} setIsAuthenticated={setIsAuthenticated} />;
+          return (
+            <LoginPage
+              setCurrentPage={setCurrentPage}
+              setIsAuthenticated={setIsAuthenticated}
+              setUser={setUser}
+            />
+          );
         case 'register':
           return <RegisterPage setCurrentPage={setCurrentPage} setIsAuthenticated={setIsAuthenticated} />;
         default:
@@ -46,7 +81,7 @@ function App() {
       case 'notifications':
         return <Notifications />;
       case 'profile':
-        return <ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} />;
+        return <ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} user={user} />;
       case 'settings':
         return <Settings darkMode={darkMode} setDarkMode={setDarkMode} />;
       default:
@@ -68,14 +103,14 @@ function App() {
             setCurrentPage={setCurrentPage}
             collapsed={sidebarCollapsed}
             setCollapsed={setSidebarCollapsed}
-            setIsAuthenticated={setIsAuthenticated}
+            onLogout={handleLogout}
           />
           <div
             className={`flex-1 flex flex-col transition-all duration-300 ${
               sidebarCollapsed ? 'ml-20' : 'ml-64'
             }`}
           >
-            <TopBar darkMode={darkMode} />
+            <TopBar darkMode={darkMode} user={user} />
             <main className={`flex-1 overflow-y-auto p-6 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
               {renderPage()}
             </main>
