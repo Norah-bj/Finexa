@@ -32,7 +32,7 @@ async function bootstrap() {
   });
 
   // Start the application
-  const port = Number(process.env.PORT) || 3000;
+  const port = Number(process.env.PORT) || 4000;
   await app.listen(port);
   console.log(`Server is running on port ${port}`);
 }
