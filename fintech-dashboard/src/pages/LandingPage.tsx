@@ -1,4 +1,3 @@
-import React from 'react';
 import { DollarSign, TrendingUp, Shield, Zap, ArrowRight, Star } from 'lucide-react';
 
 interface LandingPageProps {
@@ -56,7 +55,7 @@ export default function LandingPage({ setCurrentPage }: LandingPageProps) {
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">FinTech AI</h1>
+                <h1 className="text-xl font-bold text-gray-900">Finexa AI</h1>
                 <p className="text-xs text-gray-500">Smart Finance</p>
               </div>
             </div>

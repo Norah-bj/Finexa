@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Home,
   BarChart3,
@@ -63,7 +62,7 @@ export default function Sidebar({
           </div>
           {!collapsed && (
             <div>
-              <h1 className="text-lg font-bold">FinTech AI</h1>
+              <h1 className="text-lg font-bold">Finexa AI</h1>
               <p className="text-xs text-gray-400">Smart Finance</p>
             </div>
           )}
