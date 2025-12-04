@@ -24,7 +24,11 @@ async function bootstrap() {
 
   // Global filters
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.use(helmet());
+  app.use(helmet(
+    {
+      crossOriginResourcePolicy: {policy: "cross-origin"}
+    }
+  ),);
 
   // Enable CORS
   app.enableCors({
