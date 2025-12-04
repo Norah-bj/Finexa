@@ -19,8 +19,17 @@ export class User {
   @Column()
   password: string;
 
-@Column({ type: 'decimal', nullable: true })
-monthlyBudget: number;
+  @Column({ nullable: true })
+  phoneNumber: string;
+
+  @Column({ nullable: true })
+  location: string;
+
+  @Column({ nullable: true })
+  profilePicture: string;
+
+  @Column({ type: 'decimal', nullable: true })
+  monthlyBudget: number;
 
   @OneToOne(() => NotificationPreference, pref => pref.user)
   notificationPreference: NotificationPreference;

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  User,
   Edit3,
   Bell,
   Shield,
@@ -34,6 +33,9 @@ interface UserProfile {
   email: string;
   age: number;
   monthlyBudget?: number;
+  phoneNumber?: string;
+  location?: string;
+  profilePicture?: string;
   joinedAt?: string;
 }
 
@@ -55,24 +57,7 @@ type NotificationPrefs = {
   investmentUpdates: boolean;
 };
 
-type LocalDetails = {
-  phone: string;
-  location: string;
-};
 
-const missingData = ["Phone number", "Location", "Profile picture"];
-
-const loadLocalDetails = (): LocalDetails => {
-  if (typeof window === "undefined") return { phone: "", location: "" };
-  try {
-    const stored = localStorage.getItem("profileExtras");
-    return stored
-      ? (JSON.parse(stored) as LocalDetails)
-      : { phone: "", location: "" };
-  } catch {
-    return { phone: "", location: "" };
-  }
-};
 
 export default function ProfilePage({
   darkMode,
@@ -81,7 +66,6 @@ export default function ProfilePage({
 }: ProfilePageProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
-  const [extras, setExtras] = useState<LocalDetails>(loadLocalDetails);
   const [notifications, setNotifications] = useState<NotificationPrefs>({
     emailReports: true,
     pushNotifications: true,
@@ -97,9 +81,9 @@ export default function ProfilePage({
     email: user?.email || "",
     age: user?.age?.toString() || "",
     monthlyBudget: user?.monthlyBudget?.toString() || "",
-    phone: "",
+    phoneNumber: "",
     location: "",
-    avatar: null as File | null,
+    profilePicture: null as File | null,
   });
 
   useEffect(() => {
@@ -135,8 +119,8 @@ export default function ProfilePage({
     return {
       name: profile?.fullName ?? user?.fullName ?? "Your name",
       email: profile?.email ?? user?.email ?? "Add your email",
-      phone: extras.phone || "Add a phone number",
-      location: extras.location || "Add a location",
+      phone: profile?.phoneNumber || "Add a phone number",
+      location: profile?.location || "Add a location",
       age: profile?.age ? `${profile.age}` : "Not specified",
       joinDate,
       monthlyBudget: profile?.monthlyBudget ?? summary?.budget ?? 0,
@@ -148,8 +132,9 @@ export default function ProfilePage({
       activeGoals: summary?.activeGoals ?? 0,
       savingsRate: summary?.savingsRate ?? "0%",
       monthsActive: summary?.monthsActive ?? 0,
+      profilePicture: profile?.profilePicture || null,
     };
-  }, [profile, summary, extras, user]);
+  }, [profile, summary, user]);
 
   const handleNotificationChange = (key: keyof NotificationPrefs) => {
     setNotifications((prev) => ({
@@ -164,9 +149,9 @@ export default function ProfilePage({
       email: profile?.email ?? user?.email ?? "",
       age: profile?.age?.toString() ?? "",
       monthlyBudget: profile?.monthlyBudget?.toString() ?? "",
-      phone: extras.phone,
-      location: extras.location,
-      avatar: null,
+      phoneNumber: profile?.phoneNumber ?? "",
+      location: profile?.location ?? "",
+      profilePicture: null,
     });
     setIsModalOpen(true);
   };
@@ -180,34 +165,38 @@ export default function ProfilePage({
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
-    setEditForm((prev) => ({ ...prev, avatar: file }));
+    setEditForm((prev) => ({ ...prev, profilePicture: file }));
   };
 
-  const persistExtras = (next: LocalDetails) => {
-    setExtras(next);
-    localStorage.setItem("profileExtras", JSON.stringify(next));
-  };
+
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      const payload = {
-        fullName: editForm.fullName,
-        email: editForm.email,
-        age: editForm.age ? Number(editForm.age) : undefined,
-        monthlyBudget: editForm.monthlyBudget
-          ? Number(editForm.monthlyBudget)
-          : undefined,
-      };
+      // Use FormData for file upload
+      const formData = new FormData();
+      formData.append('fullName', editForm.fullName);
+      formData.append('email', editForm.email);
+      if (editForm.age) formData.append('age', editForm.age);
+      if (editForm.monthlyBudget) formData.append('monthlyBudget', editForm.monthlyBudget);
+      if (editForm.phoneNumber) formData.append('phoneNumber', editForm.phoneNumber);
+      if (editForm.location) formData.append('location', editForm.location);
+      if (editForm.profilePicture) {
+        formData.append('profilePicture', editForm.profilePicture);
+      }
 
       const { data } = await api.patch<UserProfile>(
         `/users/${user.id}/profile`,
-        payload
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
       setProfile(data);
-      persistExtras({ phone: editForm.phone, location: editForm.location });
       toast.success("Profile updated successfully.");
       setIsModalOpen(false);
     } catch (error) {
@@ -264,9 +253,17 @@ export default function ProfilePage({
             <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
               {/* Profile Picture */}
               <div className="relative">
-                <div className="w-24 h-24 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-4xl font-semibold">
-                  {(displayProfile.name || "U").charAt(0)}
-                </div>
+                {displayProfile.profilePicture ? (
+                  <img
+                    src={`http://localhost:4000${displayProfile.profilePicture}`}
+                    alt={displayProfile.name}
+                    className="w-24 h-24 rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-4xl font-semibold">
+                    {(displayProfile.name || "U").charAt(0)}
+                  </div>
+                )}
               </div>
 
               {/* Profile Info */}
@@ -493,17 +490,7 @@ export default function ProfilePage({
           </div>
         </div>
 
-        {/* Missing Data Notice */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
-          <h4 className="text-lg font-semibold text-yellow-900 mb-2">
-            Heads up
-          </h4>
-          <p className="text-sm text-yellow-800">
-            The following profile fields are not yet stored in the database:{" "}
-            {missingData.join(", ")}. They are currently stored locally in your
-            browser.
-          </p>
-        </div>
+
       </div>
 
       {/* Edit Profile Modal */}
@@ -593,20 +580,23 @@ export default function ProfilePage({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
-                  </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="tel"
-                    name="phone"
-                    value={editForm.phone}
+                    name="phoneNumber"
+                    value={editForm.phoneNumber}
                     onChange={handleEditChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="+1 (555) 000-0000"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                     Location
                   </label>
                   <input
@@ -623,37 +613,30 @@ export default function ProfilePage({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Profile Photo
                 </label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                    {editForm.avatar ? (
-                      <img
-                        src={URL.createObjectURL(editForm.avatar)}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
+                  <div className="flex items-center space-x-4">
+                    <div className="w-16 h-16 rounded-xl bg-primary-100 flex items-center justify-center text-2xl font-semibold text-primary-600 overflow-hidden">
+                      {editForm.profilePicture ? (
+                        <img
+                          src={URL.createObjectURL(editForm.profilePicture)}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        (editForm.fullName || "U").charAt(0)
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                       />
-                    ) : (
-                      <User className="w-8 h-8 text-gray-400" />
-                    )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        JPG, PNG or GIF (max. 2MB)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <input
-                      type="file"
-                      id="avatar-upload"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="avatar-upload"
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-                    >
-                      Change Photo
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1">
-                      JPG, GIF or PNG. Max 2MB
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
 

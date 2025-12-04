@@ -3,4 +3,7 @@ export class UpdateUserDto {
   age?: number;
   email?: string;
   monthlyBudget?: number;
+  phoneNumber?: string;
+  location?: string;
+  profilePicture?: string;
 }

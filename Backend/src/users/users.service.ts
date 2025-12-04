@@ -16,9 +16,9 @@ export class UsersService {
     private readonly usersRepo: Repository<User>,
     private readonly savingsService: SavingsService,
     private readonly investmentsService: InvestmentsService,
-  ) {}
+  ) { }
 
-  async createUser(dto: CreateUserDto): Promise<{ id: string; fullName: string; age: number; email: string}> {
+  async createUser(dto: CreateUserDto): Promise<{ id: string; fullName: string; age: number; email: string }> {
     const existing = await this.usersRepo.findOne({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already in use');
 
@@ -39,11 +39,11 @@ export class UsersService {
         fullName: user.fullName,
         age: user.age,
         email: user.email
-      } ;
+      };
 
     } catch (error) {
       console.log(error.message);
-      return error.message; 
+      return error.message;
     }
   }
 
@@ -58,7 +58,7 @@ export class UsersService {
     return user;
   }
 
-  async getUserProfile(userId: string){
+  async getUserProfile(userId: string) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new ConflictException('User not found');
 
@@ -68,11 +68,14 @@ export class UsersService {
       age: user.age,
       email: user.email,
       monthlyBudget: user.monthlyBudget,
+      phoneNumber: user.phoneNumber,
+      location: user.location,
+      profilePicture: user.profilePicture,
       joinedAt: user.createdAt,
     };
   }
 
-  async updateUserProfile(userId: string, dto: UpdateUserDto){
+  async updateUserProfile(userId: string, dto: UpdateUserDto, file?: Express.Multer.File) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new ConflictException('User not found');
 
@@ -88,6 +91,19 @@ export class UsersService {
     if (dto.monthlyBudget !== undefined) {
       user.monthlyBudget = dto.monthlyBudget;
     }
+    if (dto.phoneNumber !== undefined) {
+      user.phoneNumber = dto.phoneNumber;
+    }
+    if (dto.location !== undefined) {
+      user.location = dto.location;
+    }
+
+    // Handle file upload
+    if (file) {
+      user.profilePicture = `/uploads/profiles/${file.filename}`;
+    } else if (dto.profilePicture !== undefined) {
+      user.profilePicture = dto.profilePicture;
+    }
 
     await this.usersRepo.save(user);
     return {
@@ -96,11 +112,14 @@ export class UsersService {
       age: user.age,
       email: user.email,
       monthlyBudget: user.monthlyBudget,
+      phoneNumber: user.phoneNumber,
+      location: user.location,
+      profilePicture: user.profilePicture,
       joinedAt: user.createdAt,
     };
   }
 
-    async getFinancialSummary(userId: string) {
+  async getFinancialSummary(userId: string) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
