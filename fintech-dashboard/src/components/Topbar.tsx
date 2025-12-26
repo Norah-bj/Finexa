@@ -6,8 +6,11 @@ interface TopBarProps {
   user?: {
     fullName?: string;
     email?: string;
+    profilePicture?: string;
   } | null;
 }
+
+
 
 export default function TopBar({ darkMode = false, user }: TopBarProps) {
   const handleSearch = (e: React.FormEvent) => {
@@ -97,8 +100,16 @@ export default function TopBar({ darkMode = false, user }: TopBarProps) {
               darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"
             }`}
           >
-            <div className="w-9 h-9 rounded-xl bg-primary-500 text-white flex items-center justify-center font-semibold border-2 border-gray-200">
-              {user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
+            <div className="w-9 h-9 rounded-xl overflow-hidden bg-primary-500 text-white flex items-center justify-center font-semibold border-2 border-gray-200">
+              {user?.profilePicture ? (
+                <img
+                  src={`http://localhost:4000${user.profilePicture}`}
+                  alt={user.fullName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U"
+              )}
             </div>
             <div className="text-left">
               <p

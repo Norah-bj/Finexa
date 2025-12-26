@@ -8,7 +8,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async login(email: string, password: string) {
 
@@ -24,7 +24,7 @@ export class AuthService {
         expiresIn: '1d',
         secret: process.env.JWT_SECRET,
       }),
-      user: { id: user.id, email: user.email, fullName: user.fullName },
+      user: { id: user.id, email: user.email, fullName: user.fullName, profilePicture: user.profilePicture },
     };
   }
 }

@@ -12,6 +12,7 @@ interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  profilePicture?: string;
 }
 
 interface LoginPageProps {
@@ -36,6 +37,8 @@ export default function LoginPage({
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

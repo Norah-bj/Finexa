@@ -25,6 +25,7 @@ interface ProfilePageProps {
   darkMode: boolean;
   setDarkMode: (darkMode: boolean) => void;
   user: AuthUser | null;
+  setUser: (user: AuthUser | null) => void;
 }
 
 interface UserProfile {
@@ -63,6 +64,7 @@ export default function ProfilePage({
   darkMode,
   setDarkMode,
   user,
+  setUser,
 }: ProfilePageProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
@@ -197,6 +199,15 @@ export default function ProfilePage({
         }
       );
       setProfile(data);
+      if (user) {
+        const updatedUser = {
+          ...user,
+          fullName: data.fullName,
+          profilePicture: data.profilePicture
+        };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
       toast.success("Profile updated successfully.");
       setIsModalOpen(false);
     } catch (error) {

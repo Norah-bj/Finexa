@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LandingPage from './pages/LandingPage';
@@ -13,12 +13,13 @@ import Savings from './pages/Savings';
 import Investments from './pages/Investments';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
-import { setAuthToken } from './api/axios';
+import { api, setAuthToken } from './api/axios';
 
 export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  profilePicture?: string;
 }
 
 function App() {
@@ -34,9 +35,23 @@ function App() {
 
     if (storedToken && storedUser) {
       setAuthToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
       setIsAuthenticated(true);
       setCurrentPage('dashboard');
+
+      // Fetch fresh profile to get profile picture
+      api.get(`/users/${parsedUser.id}/profile`)
+        .then(response => {
+           const { fullName, email, profilePicture } = response.data;
+           // Only update if we received meaningful data
+           if (profilePicture !== undefined) {
+             const updatedUser = { ...parsedUser, fullName, email, profilePicture };
+             setUser(updatedUser);
+             localStorage.setItem('user', JSON.stringify(updatedUser));
+           }
+        })
+        .catch(err => console.error("Failed to refresh user profile", err));
     }
   }, []);
 
@@ -81,7 +96,7 @@ function App() {
       case 'notifications':
         return <Notifications />;
       case 'profile':
-        return <ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} user={user} />;
+        return <ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} user={user} setUser={setUser} />;
       case 'settings':
         return <Settings darkMode={darkMode} setDarkMode={setDarkMode} />;
       default:
