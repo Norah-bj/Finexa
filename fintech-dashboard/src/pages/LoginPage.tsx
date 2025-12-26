@@ -8,12 +8,7 @@ const handleLogin = async (email: string, password: string) => {
   return data;
 };
 
-interface AuthUser {
-  id: string;
-  email: string;
-  fullName: string;
-  profilePicture?: string;
-}
+import type { AuthUser } from "../types";
 
 interface LoginPageProps {
   setCurrentPage: (page: string) => void;

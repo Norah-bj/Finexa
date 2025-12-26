@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../api/axios";
-import type { AuthUser as BaseAuthUser } from "../App";
+import type { AuthUser as BaseAuthUser } from "../types";
 
 // Extend the base AuthUser type with additional properties
 interface AuthUser extends BaseAuthUser {

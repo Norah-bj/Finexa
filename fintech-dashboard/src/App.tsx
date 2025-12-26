@@ -15,12 +15,7 @@ import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import { api, setAuthToken } from './api/axios';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  fullName: string;
-  profilePicture?: string;
-}
+import type { AuthUser } from './types';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('landing');
@@ -88,7 +83,7 @@ function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'transactions':
-        return <Transactions />;
+        return <Transactions user={user} />;
       case 'savings':
         return <Savings />;
       case 'investments':
