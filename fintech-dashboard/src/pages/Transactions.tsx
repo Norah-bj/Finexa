@@ -103,7 +103,7 @@ export default function Transactions({ user }: { user: AuthUser | null }) {
   return (
     <div className="relative space-y-6">
       {/* Header */}
-      <div className={`flex justify-between items-center ${isModalOpen ? 'blur-sm' : ''}`}>
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
           <p className="text-gray-600">Track and manage all your financial transactions</p>
@@ -124,7 +124,7 @@ export default function Transactions({ user }: { user: AuthUser | null }) {
       </div>
 
       {/* Filters */}
-      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${isModalOpen ? 'blur-sm' : ''}`}>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -163,7 +163,7 @@ export default function Transactions({ user }: { user: AuthUser | null }) {
       </div>
 
       {/* Transactions Table */}
-      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${isModalOpen ? 'blur-sm' : ''}`}>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -228,7 +228,7 @@ export default function Transactions({ user }: { user: AuthUser | null }) {
       </div>
 
       {/* Summary */}
-      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${isModalOpen ? 'blur-sm' : ''}`}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-center">
             <p className="text-sm font-medium text-gray-600">Total Income</p>
